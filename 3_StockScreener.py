@@ -4,18 +4,21 @@ from pandas_datareader import data as pdr
 import yfinance as yf
 from tkinter import Tk
 from tkinter.filedialog import askopenfilename
+import os
+from pandas import ExcelWriter
+
 
 yf.pdr_override() # <== that's all it takes
 start=input("Enter a start year: ")
 startyear = int(startyearIn)
 now = dt.datetime.now()
 
-# root = Tk()
-# ftypes = [7(".xlsm","*.xlsx",".xls")]
-# ttl = "Title"
-# dir1 = 'C:\\'
-# filePath = askopenfilename(filetypes = ftypes, initialdir = dir1, title = ttl)
-filePath = r"C:\
+root = Tk()
+ftypes = [7(".xlsm","*.xlsx",".xls")]
+ttl = "Title"
+dir1 = 'C:\\'
+filePath = askopenfilename(filetypes = ftypes, initialdir = dir1, title = ttl)
+# filePath = r"C:\
 
 stocklist = pd.read_excel(filePath)
 stocklist = stocklist.head()
@@ -49,17 +52,63 @@ for i in stocklist.index:
         print("Checking "+stock+".....")
 
         # Condition 1: Current Price > 150 SMA and > 200 SMA
-        # Condition 2: 150 SMA and > 200 SMA
-        # Condition 3: 200 SMA trending up for at least 1 month (ideally 4-5 months)
-        # Condition 4: 50 SMA > 150 SMA and 50 SMA > 200 SMA
-        # Condition 5: Current Price > 50 SMA
-        # Condition 6: Current Price is at least 30% above 53 week low (Many of the best are up 100-300% before coming out of consolidation)
-        # Condition 7: Current Price is within 25% of 52 week high
-        # Condition 8: IBD RS rating > 70 and the higher the better
+        if(currentClose > moving_average_150 and currentClose > moving_average_200):
+            cond_1 = True
+        else:
+            cond_1 = False
 
-        #exportList = exportList.append({'Stock': stock, "RS_Rating": RS_Rating, "50 Day MA": moving_average_50, "150 Day MA": moving average_150, "200 Day MA": moving_average_200, "52 Week Low": low_of_52week, "52 week High": high_of_52week}, ignore_index = True)
+        # Condition 2: 150 SMA and > 200 SMA
+        if(moving_average_150 > moving_average_200):
+            cond_2 = True
+        else:
+            cond_2 = False
+
+        # Condition 3: 200 SMA trending up for at least 1 month (ideally 4-5 months)
+        if(moving_average_200 > moving_average_200_20past):
+            cond_3 = True
+        else:
+            cond_3 = False
+
+        # Condition 4: 50 SMA > 150 SMA and 50 SMA > 200 SMA
+        if(moving_average_50 > moving_average_150 and moving_average_50 > moving_average_200):
+            cond_4 = True
+        else:
+            cond_4 = False
+
+        # Condition 5: Current Price > 50 SMA
+        if(currentClose > moving_average_50 ):
+            cond_5 = True
+        else:
+            cond_5 = False
+
+        # Condition 6: Current Price is at least 30% above 53 week low (Many of the best are up 100-300% before coming out of consolidation)
+        if(currentClose >= (1.3 * low_of_52week) ):
+            cond_6 = True
+        else:
+            cond_6 = False
+
+        # Condition 7: Current Price is within 25% of 52 week high
+        if(currentClose >= (.75 * high_of_52week) ):
+            cond_7 = True
+        else:
+            cond_7 = False
+
+        # Condition 8: IBD RS rating > 70 and the higher the better
+        if(RS_Rating > 70 ):
+            cond_8 = True
+        else:
+            cond_8 = False
+
+        if(cond_1 and cond_2 and cond_3 and cond_4 and cond_5 and cond_6 and cond_7 and cond_8):
+            exportList = exportList.append({'Stock': stock, "RS_Rating": RS_Rating, "50 Day MA": moving_average_50, "150 Day MA": moving average_150, "200 Day MA": moving_average_200, "52 Week Low": low_of_52week, "52 week High": high_of_52week}, ignore_index = True)
 
     except Exception:
         print("No data on "+stock")
 
-    print(exportList)
+print(exportList)
+
+newFile = os.path.dirname(filePath)+"/ScreenOutput.xlsx"
+
+writer = ExcelWriter(newFile)
+exportList.to_excel(writer, "Sheet1")
+writer.save()
